@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -31,10 +30,11 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         .await
         .expect("Failed to create device");
 
-    let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-        label: None,
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-    });
+    let shader = device.create_shader_module(&wgpu::include_wgsl!("shader.wgsl"));
+    // let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+    //     label: None,
+    //     source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+    // });
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
