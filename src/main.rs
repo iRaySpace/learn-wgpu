@@ -1,3 +1,4 @@
+use rand::prelude::*;
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -73,6 +74,12 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     surface.configure(&device, &config);
 
+    let mut color = wgpu::Color {
+        r: 1.0,
+        g: 1.0,
+        b: 0.0,
+        a: 1.0,
+    };
     event_loop.run(move |event, _, control_flow| {
         let _ = (&instance, &adapter, &shader, &pipeline_layout);
 
@@ -103,12 +110,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                             view: &view,
                             resolve_target: None,
                             ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 1.0,
-                                    g: 1.0,
-                                    b: 0.0,
-                                    a: 1.0,
-                                }),
+                                load: wgpu::LoadOp::Clear(color),
                                 store: true,
                             },
                         }],
@@ -125,6 +127,20 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 event: WindowEvent::CloseRequested,
                 ..
             } => *control_flow = ControlFlow::Exit,
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput { input, .. },
+                ..
+            } => {
+                if input.state == winit::event::ElementState::Released {
+                    if input.virtual_keycode == Some(winit::event::VirtualKeyCode::Space) {
+                        let mut rng = rand::thread_rng();
+                        color.r = rng.gen();
+                        color.g = rng.gen();
+                        color.b = rng.gen();
+                        window.request_redraw();
+                    }
+                }
+            }
             _ => {}
         }
     });
