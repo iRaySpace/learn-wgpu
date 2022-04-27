@@ -59,6 +59,35 @@ const VERTICES: &[Vertex] = &[
 
 const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 
+const HEX_VERTICES: &[Vertex] = &[
+    Vertex {
+        position: [0.0, 1.0, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [-0.25, 0.75, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [0.25, 0.75, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [-0.25, 0.40, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [0.25, 0.40, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+    Vertex {
+        position: [0.0, 0.15, 0.0],
+        color: [0.5, 0.0, 0.5],
+    },
+];
+
+const HEX_INDICES: &[u16] = &[0, 1, 2, 2, 1, 3, 3, 2, 4, 4, 3, 5];
+
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
     let instance = wgpu::Instance::new(wgpu::Backends::all());
@@ -142,7 +171,17 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         usage: wgpu::BufferUsages::INDEX,
     });
 
-    let num_indices = INDICES.len() as u32;
+    let hex_vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Hexagon Vertex Buffer"),
+        contents: bytemuck::cast_slice(HEX_VERTICES),
+        usage: wgpu::BufferUsages::VERTEX,
+    });
+
+    let hex_index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Hexagon Index Buffer"),
+        contents: bytemuck::cast_slice(HEX_INDICES),
+        usage: wgpu::BufferUsages::INDEX,
+    });
 
     let mut color = wgpu::Color {
         r: 1.0,
@@ -150,6 +189,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         b: 0.0,
         a: 1.0,
     };
+    let mut show_hexagon = false;
     event_loop.run(move |event, _, control_flow| {
         let _ = (&instance, &adapter, &shader, &pipeline_layout);
 
@@ -187,10 +227,20 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                         depth_stencil_attachment: None,
                     });
                     rpass.set_pipeline(&render_pipeline);
-                    rpass.set_vertex_buffer(0, vertex_buffer.slice(..));
-                    rpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                    // rpass.draw(0..VERTICES.len() as u32, 0..1);
-                    rpass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
+                    if show_hexagon {
+                        rpass.set_vertex_buffer(0, hex_vertex_buffer.slice(..));
+                        rpass.set_index_buffer(
+                            hex_index_buffer.slice(..),
+                            wgpu::IndexFormat::Uint16,
+                        );
+                        // rpass.draw(0..VERTICES.len() as u32, 0..1);
+                        rpass.draw_indexed(0..HEX_INDICES.len() as u32, 0, 0..1);
+                    } else {
+                        rpass.set_vertex_buffer(0, vertex_buffer.slice(..));
+                        rpass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+                        // rpass.draw(0..VERTICES.len() as u32, 0..1);
+                        rpass.draw_indexed(0..INDICES.len() as u32, 0, 0..1);
+                    }
                 }
 
                 queue.submit(Some(encoder.finish()));
@@ -210,6 +260,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                         color.r = rng.gen();
                         color.g = rng.gen();
                         color.b = rng.gen();
+                        show_hexagon = !show_hexagon;
                         window.request_redraw();
                     }
                 }
