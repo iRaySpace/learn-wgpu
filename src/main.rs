@@ -11,7 +11,8 @@ use winit::{
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
     position: [f32; 3],
-    color: [f32; 3],
+    // color: [f32; 3],
+    tex_coords: [f32; 2],
 }
 
 impl Vertex {
@@ -28,7 +29,8 @@ impl Vertex {
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 3]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
+                    // format: wgpu::VertexFormat::Float32x3,
+                    format: wgpu::VertexFormat::Float32x2,
                 },
             ],
         }
@@ -38,23 +40,28 @@ impl Vertex {
 const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-0.0868241, 0.49240386, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.4131759, 0.99240386],
     },
     Vertex {
         position: [-0.49513406, 0.06958647, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0048659444, 0.56958647],
     },
     Vertex {
         position: [-0.21918549, -0.44939706, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.28081453, 0.05060294],
     },
     Vertex {
         position: [0.35966998, -0.3473291, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.85967, 0.1526709],
     },
     Vertex {
         position: [0.44147372, 0.2347359, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.9414737, 0.7347359],
     },
 ];
 
@@ -63,27 +70,33 @@ const INDICES: &[u16] = &[0, 1, 4, 1, 2, 4, 2, 3, 4];
 const HEX_VERTICES: &[Vertex] = &[
     Vertex {
         position: [0.0, 1.0, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
     Vertex {
         position: [-0.25, 0.75, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
     Vertex {
         position: [0.25, 0.75, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
     Vertex {
         position: [-0.25, 0.40, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
     Vertex {
         position: [0.25, 0.40, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
     Vertex {
         position: [0.0, 0.15, 0.0],
-        color: [0.5, 0.0, 0.5],
+        // color: [0.5, 0.0, 0.5],
+        tex_coords: [0.0, 0.0],
     },
 ];
 
@@ -121,12 +134,6 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     //     source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
     // });
 
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[],
-        push_constant_ranges: &[],
-    });
-
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format: surface.get_preferred_format(&adapter).unwrap(),
@@ -134,29 +141,6 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
     };
-
-    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Render Pipeline"),
-        layout: Some(&pipeline_layout),
-        vertex: wgpu::VertexState {
-            module: &shader,
-            entry_point: "vs_main",
-            buffers: &[Vertex::desc()],
-        },
-        fragment: Some(wgpu::FragmentState {
-            module: &shader,
-            entry_point: "fs_main",
-            targets: &[wgpu::ColorTargetState {
-                format: config.format,
-                blend: Some(wgpu::BlendState::REPLACE),
-                write_mask: wgpu::ColorWrites::ALL,
-            }],
-        }),
-        primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
-        multiview: None,
-    });
 
     surface.configure(&device, &config);
 
@@ -220,6 +204,84 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         texture_size,
     );
 
+    let diffuse_texture_view = diffuse_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let diffuse_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::FilterMode::Nearest,
+        ..Default::default()
+    });
+
+    let texture_bind_group_layout =
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+            label: Some("texture_bind_group_layout"),
+        });
+
+    let diffuse_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &texture_bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&diffuse_texture_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(&diffuse_sampler),
+            },
+        ],
+        label: Some("diffuse_bind_group"),
+    });
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: None,
+        bind_group_layouts: &[&texture_bind_group_layout],
+        push_constant_ranges: &[],
+    });
+
+    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("Render Pipeline"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: "vs_main",
+            buffers: &[Vertex::desc()],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: "fs_main",
+            targets: &[wgpu::ColorTargetState {
+                format: config.format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            }],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+    });
+
     let mut color = wgpu::Color {
         r: 1.0,
         g: 1.0,
@@ -264,6 +326,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                         depth_stencil_attachment: None,
                     });
                     rpass.set_pipeline(&render_pipeline);
+                    rpass.set_bind_group(0, &diffuse_bind_group, &[]);
                     if show_hexagon {
                         rpass.set_vertex_buffer(0, hex_vertex_buffer.slice(..));
                         rpass.set_index_buffer(
